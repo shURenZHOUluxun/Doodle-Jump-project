@@ -39,21 +39,34 @@ main:		lw $t0, displayAddress # $t0 stores the base address for display
 		addi $sp, $sp, -4
 		sw $ra, 0($sp) #store return address into stack 
 		jal platformLocation # calculate new platform location
+goUp:		jal redrawscreen
 		jal drawplatform #initialize 5 platform based on platformLocation
-goUp:		lw, $t2, doodler
-		ble $t2, 0, Terminate #if doodler exceeds 
-		jal drawdoodler #initialize doodler to the center of the screen
+		lw  $t2, doodler
+		ble $t2, 0, Terminate #if doodler exceeds top of the screen, terminate program
+		jal drawdoodler #initialize doodler depend on menmory position
 		jal collision # check collision
 		lw $t1, 0($sp)
 		beq $t1, 1 , goUp
 dropagain:	jal dropdoodler #doodler drop by one unit
 		jal collision # check collision
 		lw $t1, 0($sp)
-		beq $t1, 1 , goUp
+		beq $t1, 1, goUp
 		lw $t2, doodler
 		blt $t2, 1024, dropagain
 Terminate:	li $v0, 10 # terminate the program gracefully
 		syscall
+
+
+redrawscreen:	lw $t3, black #store black color
+		li $t4, 1024 #max loop for screen
+		li $t1, 0 #offset 
+loop6:		sll $t2, $t1, 2 #offset times 4
+		lw $t0, displayAddress #store base address
+		add $t0, $t0, $t2 #calculate position
+		sw $t3, 0($t0) #paint current block by black
+		addi $t1, $t1, 1
+		bne $t1, $t4, loop6
+		jr $ra
 
 
 platformLocation:	li $t1, 5 #loop 5 times
@@ -118,7 +131,7 @@ loop3:		lw $t4, doodler
 		sw $t1, 512($t0)
 		sw $t1, 516($t0)
 		li $v0, 32 # wait for 1 second
-		li $a0, 100
+		li $a0, 500
 		syscall
 		sw $t3, 0($t0) # repaint the screen by black
 		sw $t3, 124($t0) 
@@ -177,22 +190,6 @@ draw_move:	addi $t4, $t4, -128
 		sw $t4, 0($s0)
 		addi $t5, $t5, -1
 		bnez $t5, loop3
-		
-		#sw $t2, 0($t0) # paint the doodler 
-		#sw $t2, 124($t0) 
-		#sw $t2, 128($t0) 
-		#sw $t2, 132($t0)
-		#sw $t2, 252($t0)
-		#sw $t2, 256($t0)
-		#sw $t3, 260($t0)
-		#sw $t2, 264($t0)
-		#sw $t2, 268($t0)
-		#sw $t2, 380($t0)
-		#sw $t2, 384($t0)
-		#sw $t2, 388($t0)
-		#sw $t1, 508($t0)
-		#sw $t1, 512($t0)
-		#sw $t1, 516($t0)
 		jr $ra
 		
 
@@ -207,7 +204,10 @@ dropdoodler:	lw $t3, black #store black color
 		li $t6, 4 # store 4
 		lw $t4, doodler
 		mul $t4, $t4, $t6 #multiply $t4 with 4
-		addi $t4, $t4, 128
+		lw $t7, 0xffff0004
+		beq $t7, 0x6a, respond_j2 # check if j was pressed
+		beq $t7, 0x6b, respond_k2 # check if k was pressed
+draw:		addi $t4, $t4, 128
 		lw $t0, displayAddress #store base address
 		add $t0, $t0, $t4 #calculate position
 		
@@ -231,7 +231,7 @@ dropdoodler:	lw $t3, black #store black color
 		sw $t1, 512($t0)
 		sw $t1, 516($t0)
 		li $v0, 32 # wait for 1 second
-		li $a0, 100
+		li $a0, 500
 		syscall
 		sw $t3, 0($t0) # repaint the screen by black
 		sw $t3, 124($t0) 
@@ -249,6 +249,11 @@ dropdoodler:	lw $t3, black #store black color
 		sw $t3, 512($t0)
 		sw $t3, 516($t0)
 		jr $ra
+		
+respond_j2:	addi $t4, $t4, -4 # position move one block to left
+		j draw
+respond_k2:	addi $t4, $t4, 4 # position move one block to right		
+		j draw
 		
 collision:	li $t5, 4 #t5 stores 4
 		li $t4, 5 #loop number, loop 5 times
@@ -276,13 +281,47 @@ next:		addi $t2, $t2, -2
 		sw $t0, 0($sp) #store 1 for true 0 for false into stack 
 		jr $ra
 		
-End:		li $t0, 1
+End:		blt $t3, 928, platformdown
+		li $t0, 1
 		addi $sp, $sp, -4
 		sw $t0, 0($sp) #store 1 for true 0 for false into stack 
 		jr $ra		
-#Exit:
-	#li $v0, 10 # terminate the program gracefully
-	#syscall
+
+platformdown:	addi $t3, $t3, 128 
+		li $s4, 5 #loop number, loop 5 times
+		li $s7, 0 #offset for platform array address
+		la $s6, platformArray #load platformArray address
+loop5:		sll $s1, $s7, 2 #offset $t7 times 4
+		add $s6, $s6, $s1 #locate to array where we want to store number in 
+		lw $s3, 0($s6) #load position from array
+		addi $s3, $s3, 128 #move one row down
+		bge $s3, 1024, renew
+restore:	sw $s3, 0($s6)
+		addi $s7, $s7, 1 #offset add 1
+		bne $s7, $s4, loop5 #check if we have 5 numbers already
+		j End
+renew:		li $v0, 42 #radomize a number
+		li $a0, 0 
+		li $a1, 26 #randomized number will be in range 0-26
+		syscall # radomized number stored in $a0
+		addi $s3, $a0, 0
+		j restore
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
