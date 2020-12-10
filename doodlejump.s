@@ -13,7 +13,7 @@
 # - Base Address for Display: 0x10008000 ($gp)
 #
 # Which milestone is reached in this submission?
-# - Milestone 1
+# - Milestone 4
 #
 # Which approved additional features have been implemented?
 # (See the assignment handout for the list of additional features)
@@ -29,34 +29,59 @@
 
 .data
 	displayAddress: .word 0x10008000
-	red: .word 0xff0000
-	green: .word 0x00ff00
-	black: .word 0x000000
+	red: .word 0xff9999
+	green: .word 0xE5FFCC
+	purple: .word 0xCCCCFF
 	score: .word 0 #initial score of player
+	shield: .word 5 #initial position of shield in unit
 	platformArray: .space 20 #initialize array of 5 integers to store position of platform
 	doodler: .word 496 #initial offset of position of doodler
 .text
-main:		#lw $t0, displayAddress # $t0 stores the base address for display
+main:		
 		addi $sp, $sp, -4
 		sw $ra, 0($sp) #store return address into stack 
+		jal redrawscreen
 		jal platformLocation # calculate new platform location
-goUp:		#jal redrawscreen
+goUp:		lw $t1, purple
+		addi $sp, $sp, -4
+		sw $t1, 0($sp) #draw shield with purple
+		jal drawShield
+		addi $sp, $sp, 4 #pop argument
 		jal drawplatform #initialize 5 platform based on platformLocation
-		lw $t1, red
+		lw $t1, green
 		addi $sp, $sp, -4
 		sw $t1, 0($sp) #draw Score with green
 		jal drawScore
-		#lw  $t2, doodler
-		#ble $t2, 0, Terminate #if doodler exceeds top of the screen, terminate program
+		addi $sp, $sp, 4 #pop argument
+		lw  $t2, doodler
+		ble $t2, 0, Terminate #if doodler exceeds top of the screen, terminate program
 		jal drawdoodler #initialize doodler depend on menmory position
+		
+		li $v0, 42 #radomize a number
+		li $a0, 0 
+		li $a1, 928 #randomized number will be in range 0-928
+		syscall # radomized number stored in $a0
+		addi $sp, $sp, -4
+		la $t3, shield
+		sw $a0, 0($t3) 
+		lw $t1, green
+		addi $sp, $sp, -4
+		sw $t1, 0($sp) #draw shield with green
+		jal drawShield
+		addi $sp, $sp, 4 #pop argument
 		jal collision # check collision
 		lw $t1, 0($sp)
-		beq $t1, 1 , goUp
+		beq $t1, 1 , updateScore
 dropagain:	jal dropdoodler #doodler drop by one unit
+		lw $t1, green
+		addi $sp, $sp, -4
+		sw $t1, 0($sp) #draw Score with green
+		jal drawScore
+		addi $sp, $sp, 4 #pop argument
 		jal drawplatform #incase some platform loss its color
 		jal collision # check collision
 		lw $t1, 0($sp)
-		beq $t1, 1, goUp
+		beq $t1, 1, updateScore
 		lw $t2, doodler
 		blt $t2, 1024, dropagain
 Terminate:	jal redrawscreen
@@ -71,8 +96,41 @@ Terminate:	jal redrawscreen
 		li $v0, 10 # terminate the program gracefully
 		syscall
 
+updateScore:	lw $t1, purple
+		addi $sp, $sp, -4
+		sw $t1, 0($sp) #draw Score with black
+		jal drawScore
+		addi $sp, $sp, 4 #pop color
+		la $t9, score
+		lw $t8, score
+		addi $t8, $t8, 1
+		sw $t8, 0($t9)# score plus one
+		beq $t8, 6, drawwow
+backtoscore:	j goUp
 
-redrawscreen:	lw $t3, black #store black color
+drawwow:	addi $sp, $sp, -4
+		sw $ra, 0($sp) #store return address into stack 
+		addi $sp, $sp, -4
+		li $s1, 774 
+		sw $s1, 0($sp)
+		addi $sp, $sp, -4
+		lw $s2, green
+		sw $s2, 0($sp)
+		jal drawWOW
+		li $v0, 32 # wait for 1 second
+		li $a0, 500
+		syscall
+		lw $s2, purple
+		sw $s2, 0($sp)
+		jal drawWOW
+		addi $sp, $sp, 4
+		addi $sp, $sp, 4
+		lw $ra, 0($sp)
+		addi $sp, $sp, 4
+		j backtoscore
+		
+
+redrawscreen:	lw $t3, purple #store black color
 		li $t4, 1024 #max loop for screen
 		li $t1, 0 #offset 
 loop6:		sll $t2, $t1, 2 #offset times 4
@@ -120,7 +178,7 @@ loop2:		sll $t8, $t7, 2 #offset $t7 times 4
 END:		jr $ra#jump back to main
 
 				
-drawdoodler:	lw $t3, black #store black color
+drawdoodler:	lw $t3, purple #store black color
 		lw $t2, green #store green color
 		lw $t1, red #store red color
 		lw $t0, displayAddress #store base address
@@ -146,7 +204,7 @@ loop3:		lw $t4, doodler
 		sw $t1, 512($t0)
 		sw $t1, 516($t0)
 		li $v0, 32 # wait for 1 second
-		li $a0, 500
+		li $a0, 200
 		syscall
 		sw $t3, 0($t0) # repaint the screen by black
 		sw $t3, 124($t0) 
@@ -213,7 +271,7 @@ respond_j:	addi $t4, $t4, -4 # position move one block to left
 respond_k:	addi $t4, $t4, 4 # position move one block to right		
 		j draw_move	
 
-dropdoodler:	lw $t3, black #store black color
+dropdoodler:	lw $t3, purple #store black color
 		lw $t2, green #store green color
 		lw $t1, red #store red color
 		li $t6, 4 # store 4
@@ -246,7 +304,7 @@ draw:		addi $t4, $t4, 128
 		sw $t1, 512($t0)
 		sw $t1, 516($t0)
 		li $v0, 32 # wait for 1 second
-		li $a0, 500
+		li $a0, 200
 		syscall
 		sw $t3, 0($t0) # repaint the screen by black
 		sw $t3, 124($t0) 
@@ -315,7 +373,7 @@ platformdown:	addi $t3, $t3, 32 # move block down one row
 loop5:		sll $s1, $s7, 2 #offset $t7 times 4
 		add $s6, $s6, $s1 #locate to array where we want to store number in 
 		lw $s3, 0($s6) #load position from array
-		lw $s2, black #store block
+		lw $s2, purple #store block
 		sll $s5, $s3, 2 #position number times 4
 		lw $s0, displayAddress #load address
 		add $s0, $s0, $s5 #calculate new address
@@ -482,6 +540,58 @@ drawR:		lw $t1, red
 		sw $t1, 388($t0) 
 		sw $t1, 512($t0)
 		sw $t1, 520($t0)
+		jr $ra
+		
+drawWOW:	
+		lw $t1, 0($sp)
+		lw $t0, displayAddress
+		lw $t3, 4($sp) #offset of top left block
+		sll $t4, $t3, 2 # offset times 4
+		add $t0, $t0, $t4 #calculate top left block 
+		sw $t1, 0($t0) #draw G with red
+		sw $t1, 16($t0)
+		sw $t1, 128($t0)
+		sw $t1, 136($t0)
+		sw $t1, 144($t0)
+		sw $t1, 256($t0)
+		sw $t1, 264($t0)
+		sw $t1, 272($t0)
+		sw $t1, 388($t0) 
+		sw $t1, 392($t0)
+		sw $t1, 396($t0)
+		sw $t1, 516($t0)
+		sw $t1, 524($t0)
+		
+		
+		add $t0, $t0, 24 #calculate top left block 
+		sw $t1, 4($t0) #draw O with red
+		sw $t1, 8($t0)
+		sw $t1, 128($t0)
+		sw $t1, 140($t0)
+		sw $t1, 256($t0)
+		sw $t1, 268($t0)
+		sw $t1, 384($t0)
+		sw $t1, 396($t0)
+		sw $t1, 516($t0)
+		sw $t1, 520($t0)
+		
+		
+		add $t0, $t0, 24 #calculate top left block 
+		sw $t1, 0($t0) #draw G with red
+		sw $t1, 16($t0)
+		sw $t1, 128($t0)
+		sw $t1, 136($t0)
+		sw $t1, 144($t0)
+		sw $t1, 256($t0)
+		sw $t1, 264($t0)
+		sw $t1, 272($t0)
+		sw $t1, 388($t0) 
+		sw $t1, 392($t0)
+		sw $t1, 396($t0)
+		sw $t1, 516($t0)
+		sw $t1, 524($t0)
+		
+		jr $ra
 
 drawScore:	lw $t6, 0($sp)# pop color from stack
 		addi $sp, $sp, 4 #pop 
@@ -748,3 +858,23 @@ drawNine:	lw $t1, 0($sp) #load offset
 		sw $t2, 392($t0)
 		sw $t2, 520($t0)
 		jr $ra
+		
+drawShield:	lw $t1, shield #load offset number
+		sll $t4, $t1, 2 # offset number times 4
+		lw $t0, displayAddress
+		lw $t2, 0($sp) #load color
+		add $t0, $t0, $t4 #locate left top block
+		sw $t2, 0($t0) # paint the number
+		sw $t2, 4($t0)
+		sw $t2, 8($t0)
+		sw $t2, 128($t0) 
+		sw $t2, 132($t0)
+		sw $t2, 136($t0)
+		sw $t2, 260($t0)
+		jr $ra
+		
+		
+		
+		
+		
+		
