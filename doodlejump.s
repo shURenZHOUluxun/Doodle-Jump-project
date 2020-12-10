@@ -39,7 +39,7 @@ main:		lw $t0, displayAddress # $t0 stores the base address for display
 		addi $sp, $sp, -4
 		sw $ra, 0($sp) #store return address into stack 
 		jal platformLocation # calculate new platform location
-goUp:		jal redrawscreen
+goUp:		#jal redrawscreen
 		jal drawplatform #initialize 5 platform based on platformLocation
 		lw  $t2, doodler
 		ble $t2, 0, Terminate #if doodler exceeds top of the screen, terminate program
@@ -48,12 +48,22 @@ goUp:		jal redrawscreen
 		lw $t1, 0($sp)
 		beq $t1, 1 , goUp
 dropagain:	jal dropdoodler #doodler drop by one unit
+		jal drawplatform #incase some platform loss its color
 		jal collision # check collision
 		lw $t1, 0($sp)
 		beq $t1, 1, goUp
 		lw $t2, doodler
 		blt $t2, 1024, dropagain
-Terminate:	li $v0, 10 # terminate the program gracefully
+Terminate:	jal redrawscreen
+		jal drawG
+		jal drawA
+		jal drawM
+		jal drawE
+		jal drawO
+		jal drawV
+		jal drawE2
+		jal drawR
+		li $v0, 10 # terminate the program gracefully
 		syscall
 
 
@@ -294,6 +304,16 @@ platformdown:	addi $t3, $t3, 128
 loop5:		sll $s1, $s7, 2 #offset $t7 times 4
 		add $s6, $s6, $s1 #locate to array where we want to store number in 
 		lw $s3, 0($s6) #load position from array
+		lw $s2, black #paint the platform black
+		sll $s5, $s3, 2
+		lw $s0, displayAddress
+		add $s0, $s0, $s5
+		sw $s2, 0($s0)
+		sw $s2, 4($s0)
+		sw $s2, 8($s0)
+		sw $s2, 12($s0)
+		sw $s2, 16($s0)
+		sw $s2, 20($s0)
 		addi $s3, $s3, 128 #move one row down
 		bge $s3, 1024, renew
 restore:	sw $s3, 0($s6)
@@ -307,17 +327,150 @@ renew:		li $v0, 42 #radomize a number
 		addi $s3, $a0, 0
 		j restore
 		
+drawG:		lw $t1, red
+		lw $t0, displayAddress
+		li $t3, 102 #offset of top left block
+		sll $t4, $t3, 2 # offset times 4
+		add $t0, $t0, $t4 #calculate top left block 
+		sw $t1, 0($t0) #draw G with red
+		sw $t1, 4($t0)
+		sw $t1, 8($t0)
+		sw $t1, 12($t0)
+		sw $t1, 128($t0)
+		sw $t1, 256($t0)
+		sw $t1, 264($t0)
+		sw $t1, 268($t0)
+		sw $t1, 384($t0)
+		sw $t1, 396($t0)
+		sw $t1, 512($t0)
+		sw $t1, 516($t0)
+		sw $t1, 520($t0)
+		sw $t1, 524($t0)
+		jr $ra
 
+drawA:		lw $t1, red
+		lw $t0, displayAddress
+		li $t3, 108 #offset of top left block
+		sll $t4, $t3, 2 # offset times 4
+		add $t0, $t0, $t4 #calculate top left block 
+		sw $t1, 0($t0) #draw G with red
+		sw $t1, 124($t0)
+		sw $t1, 132($t0)
+		sw $t1, 252($t0)
+		sw $t1, 256($t0)
+		sw $t1, 260($t0)
+		sw $t1, 380($t0)
+		sw $t1, 388($t0)
+		sw $t1, 508($t0)
+		sw $t1, 516($t0)
+		jr $ra
 
+drawM:		lw $t1, red
+		lw $t0, displayAddress
+		li $t3, 111 #offset of top left block
+		sll $t4, $t3, 2 # offset times 4
+		add $t0, $t0, $t4 #calculate top left block 
+		sw $t1, 0($t0) #draw G with red
+		sw $t1, 16($t0)
+		sw $t1, 128($t0)
+		sw $t1, 132($t0)
+		sw $t1, 140($t0)
+		sw $t1, 144($t0)
+		sw $t1, 256($t0)
+		sw $t1, 264($t0)
+		sw $t1, 272($t0)
+		sw $t1, 384($t0)
+		sw $t1, 400($t0)
+		sw $t1, 512($t0)
+		sw $t1, 528($t0)
+		jr $ra
 
+drawE:		lw $t1, red
+		lw $t0, displayAddress
+		li $t3, 117 #offset of top left block
+		sll $t4, $t3, 2 # offset times 4
+		add $t0, $t0, $t4 #calculate top left block 
+		sw $t1, 0($t0) #draw G with red
+		sw $t1, 4($t0)
+		sw $t1, 8($t0)
+		sw $t1, 128($t0)
+		sw $t1, 256($t0)
+		sw $t1, 260($t0)
+		sw $t1, 264($t0)
+		sw $t1, 384($t0)
+		sw $t1, 512($t0)
+		sw $t1, 516($t0)
+		sw $t1, 520($t0)
+		jr $ra
 
+drawO:		lw $t1, red
+		lw $t0, displayAddress
+		li $t3, 326 #offset of top left block
+		sll $t4, $t3, 2 # offset times 4
+		add $t0, $t0, $t4 #calculate top left block 
+		sw $t1, 4($t0) #draw G with red
+		sw $t1, 8($t0)
+		sw $t1, 128($t0)
+		sw $t1, 140($t0)
+		sw $t1, 256($t0)
+		sw $t1, 268($t0)
+		sw $t1, 384($t0)
+		sw $t1, 396($t0)
+		sw $t1, 516($t0)
+		sw $t1, 520($t0)
+		jr $ra
+		
+drawV:		lw $t1, red
+		lw $t0, displayAddress
+		li $t3, 331 #offset of top left block
+		sll $t4, $t3, 2 # offset times 4
+		add $t0, $t0, $t4 #calculate top left block 
+		sw $t1, 0($t0) #draw G with red
+		sw $t1, 16($t0)
+		sw $t1, 128($t0)
+		sw $t1, 144($t0)
+		sw $t1, 256($t0)
+		sw $t1, 272($t0)
+		sw $t1, 388($t0)
+		sw $t1, 396($t0)
+		sw $t1, 520($t0)
+		jr $ra
+		
+drawE2:		lw $t1, red
+		lw $t0, displayAddress
+		li $t3, 337 #offset of top left block
+		sll $t4, $t3, 2 # offset times 4
+		add $t0, $t0, $t4 #calculate top left block 
+		sw $t1, 0($t0) #draw G with red
+		sw $t1, 4($t0)
+		sw $t1, 8($t0)
+		sw $t1, 128($t0)
+		sw $t1, 256($t0)
+		sw $t1, 260($t0)
+		sw $t1, 264($t0)
+		sw $t1, 384($t0)
+		sw $t1, 512($t0)
+		sw $t1, 516($t0)
+		sw $t1, 520($t0)
+		jr $ra
 
-
-
-
-
-
-
+drawR:		lw $t1, red
+		lw $t0, displayAddress
+		li $t3, 341 #offset of top left block
+		sll $t4, $t3, 2 # offset times 4
+		add $t0, $t0, $t4 #calculate top left block 
+		sw $t1, 0($t0) #draw G with red
+		sw $t1, 4($t0)
+		sw $t1, 8($t0)
+		sw $t1, 128($t0)
+		sw $t1, 136($t0)
+		sw $t1, 256($t0)
+		sw $t1, 260($t0)
+		sw $t1, 264($t0)
+		sw $t1, 384($t0)
+		sw $t1, 388($t0) 
+		sw $t1, 512($t0)
+		sw $t1, 520($t0)
 
 
 
