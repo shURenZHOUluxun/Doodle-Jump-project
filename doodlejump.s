@@ -32,17 +32,22 @@
 	red: .word 0xff0000
 	green: .word 0x00ff00
 	black: .word 0x000000
-	platformArray: .word 0:5 #initialize array of 5 integers to store position of platform
+	score: .word 0 #initial score of player
+	platformArray: .space 20 #initialize array of 5 integers to store position of platform
 	doodler: .word 496 #initial offset of position of doodler
 .text
-main:		lw $t0, displayAddress # $t0 stores the base address for display
+main:		#lw $t0, displayAddress # $t0 stores the base address for display
 		addi $sp, $sp, -4
 		sw $ra, 0($sp) #store return address into stack 
 		jal platformLocation # calculate new platform location
 goUp:		#jal redrawscreen
 		jal drawplatform #initialize 5 platform based on platformLocation
-		lw  $t2, doodler
-		ble $t2, 0, Terminate #if doodler exceeds top of the screen, terminate program
+		lw $t1, red
+		addi $sp, $sp, -4
+		sw $t1, 0($sp) #draw Score with green
+		jal drawScore
+		#lw  $t2, doodler
+		#ble $t2, 0, Terminate #if doodler exceeds top of the screen, terminate program
 		jal drawdoodler #initialize doodler depend on menmory position
 		jal collision # check collision
 		lw $t1, 0($sp)
@@ -273,17 +278,17 @@ loop4:		sll $t8, $t7, 2 #offset $t7 times 4
 		add $t6, $t6, $t8 #locate to array with offset
 		lw $t3, 0($t6) #load position of platform from array
 		lw $t2, doodler #load doodler position		
-		addi $t2, $t2, 129 #doodler left bottom position
-		bge $t2, $t3, next
-		addi $t7, $t7, 1
-		bne $t7, $t4, loop4
-		li $t0, 0
+		addi $t2, $t2, 161 #doodler right bottom position
+		bge $t2, $t3, next #check doodler right bottom greater than or equal to platform leftmost block
+		addi $t7, $t7, 1 # if not collide, offset plus one
+		bne $t7, $t4, loop4 # if not all platform checked, loop 
+		li $t0, 0 # if all platform checked, no collision
 		addi $sp, $sp, -4
 		sw $t0, 0($sp) #store 1 for true 0 for false into stack 
-		jr $ra
-next:		addi $t2, $t2, -2
-		addi $t3, $t3, 6
-		ble $t2, $t3, End
+		jr $ra #return 0
+next:		addi $t2, $t2, -2 #doodler left bottom 
+		addi $t3, $t3, 6 #platform rightmost block
+		blt $t2, $t3, End # if collide, jump to end
 		addi $t7, $t7, 1
 		bne $t7, $t4, loop4
 		li $t0, 0
@@ -291,30 +296,36 @@ next:		addi $t2, $t2, -2
 		sw $t0, 0($sp) #store 1 for true 0 for false into stack 
 		jr $ra
 		
-End:		blt $t3, 928, platformdown
+End:		
+		blt $t3, 864, platformdown #if collided block not in last 5 rows, move it down
+		addi $sp, $sp, -4
+		sw $ra, 0($sp)
+		jal drawplatform
+		lw $ra, 0($sp)
+		addi $sp, $sp, 4
 		li $t0, 1
 		addi $sp, $sp, -4
 		sw $t0, 0($sp) #store 1 for true 0 for false into stack 
 		jr $ra		
 
-platformdown:	addi $t3, $t3, 128 
+platformdown:	addi $t3, $t3, 32 # move block down one row
 		li $s4, 5 #loop number, loop 5 times
 		li $s7, 0 #offset for platform array address
 		la $s6, platformArray #load platformArray address
 loop5:		sll $s1, $s7, 2 #offset $t7 times 4
 		add $s6, $s6, $s1 #locate to array where we want to store number in 
 		lw $s3, 0($s6) #load position from array
-		lw $s2, black #paint the platform black
-		sll $s5, $s3, 2
-		lw $s0, displayAddress
-		add $s0, $s0, $s5
-		sw $s2, 0($s0)
+		lw $s2, black #store block
+		sll $s5, $s3, 2 #position number times 4
+		lw $s0, displayAddress #load address
+		add $s0, $s0, $s5 #calculate new address
+		sw $s2, 0($s0)# paint old platform to black
 		sw $s2, 4($s0)
 		sw $s2, 8($s0)
 		sw $s2, 12($s0)
 		sw $s2, 16($s0)
 		sw $s2, 20($s0)
-		addi $s3, $s3, 128 #move one row down
+		addi $s3, $s3, 32 #move one row down
 		bge $s3, 1024, renew
 restore:	sw $s3, 0($s6)
 		addi $s7, $s7, 1 #offset add 1
@@ -472,12 +483,268 @@ drawR:		lw $t1, red
 		sw $t1, 512($t0)
 		sw $t1, 520($t0)
 
+drawScore:	lw $t6, 0($sp)# pop color from stack
+		addi $sp, $sp, 4 #pop 
+		lw $t1, score
+		li $t2, 10 # store 10
+		div $t1, $t2 #divide score with 10
+		mflo $t3 #quotient, tenth digit
+		mfhi $t4 #remainder, oneth digit
+		li $t5, 132 #top left block of tenth digit
+		addi $sp, $sp, -4
+		sw $ra, 0($sp) #store return address into stack
+		addi $sp, $sp, -4
+		sw $t3, 0($sp) #store quotient into stack
+		addi $sp, $sp, -4
+		sw $t4, 0($sp) #store remainder into stack
+		addi $sp, $sp, -4
+		sw $t6, 0($sp) #store color into stack
+		addi $sp, $sp, -4
+		sw $t5, 0($sp) #store top left block for tenth digit into stack
+		beq $t3, 0, drawzero # if tenth digit is 0
+		beq $t3, 1, drawone # if tenth digit is 1
+		beq $t3, 2, drawtwo # if tenth digit is 2
+		beq $t3, 3, drawthree # if tenth digit is 3
+		beq $t3, 4, drawfour # if tenth digit is 4
+		beq $t3, 5, drawfive # if tenth digit is 5
+		beq $t3, 6, drawsix # if tenth digit is 6
+		beq $t3, 7, drawseven # if tenth digit is 7
+		beq $t3, 8, draweight # if tenth digit is 8
+		beq $t3, 9, drawnine # if tenth digit is 9
+drawoneth:	lw $t5, 0($sp)
+		addi $sp, $sp, 4 #pop numbers
+		lw $t6, 0($sp)
+		addi $sp, $sp, 4 #pop numbers
+		lw $t4, 0($sp)
+		addi $sp, $sp, 4 #pop numbers
+		lw $t3, 0($sp)
+		addi $sp, $sp, 4 #pop numbers
+		li $t5, 148 #top left block of oneth digit
+		addi $sp, $sp, -4
+		sw $t6, 0($sp) #store color into stack
+		addi $sp, $sp, -4
+		sw $t5, 0($sp) #store top left block for oneth digit into stack
+		beq $t4, 0, drawzero2 # if oneth digit is 0
+		beq $t4, 1, drawone2 # if oneth digit is 1
+		beq $t4, 2, drawtwo2 # if oneth digit is 2
+		beq $t4, 3, drawthree2 # if oneth digit is 3
+		beq $t4, 4, drawfour2 # if oneth digit is 4
+		beq $t4, 5, drawfive2 # if oneth digit is 5
+		beq $t4, 6, drawsix2 # if oneth digit is 6
+		beq $t4, 7, drawseven2 # if oneth digit is 7
+		beq $t4, 8, draweight2 # if oneth digit is 8
+		beq $t4, 9, drawnine2 # if oneth digit is 9
+Finish:		lw $t5, 0($sp)
+		addi $sp, $sp, 4 #pop numbers
+		lw $t6, 0($sp)
+		addi $sp, $sp, 4 #pop color
+		lw $ra, 0($sp)
+		addi $sp, $sp, 4 #pop $ra
+		jr $ra
 
 
+drawzero:	jal drawZero
+		j drawoneth
+drawone:	jal drawOne
+		j drawoneth
+drawtwo:	jal drawTwo
+		j drawoneth
+drawthree:	jal drawThree
+		j drawoneth
+drawfour:	jal drawFour
+		j drawoneth
+drawfive:	jal drawFive
+		j drawoneth
+drawsix:	jal drawSix
+		j drawoneth
+drawseven:	jal drawSeven
+		j drawoneth
+draweight:	jal drawEight
+		j drawoneth
+drawnine:	jal drawNine
+		j drawoneth
 
+drawzero2:	jal drawZero
+		j Finish
+drawone2:	jal drawOne
+		j Finish
+drawtwo2:	jal drawTwo
+		j Finish
+drawthree2:	jal drawThree
+		j Finish
+drawfour2:	jal drawFour
+		j Finish
+drawfive2:	jal drawFive
+		j Finish
+drawsix2:	jal drawSix
+		j Finish
+drawseven2:	jal drawSeven
+		j Finish
+draweight2:	jal drawEight
+		j Finish
+drawnine2:	jal drawNine
+		j Finish
 
+drawZero:	lw $t1, 0($sp) #load offset
+		lw $t0, displayAddress
+		lw $t2, 4($sp) #load color
+		add $t0, $t0, $t1 #locate left top block
+		sw $t2, 0($t0) # paint the number
+		sw $t2, 4($t0)
+		sw $t2, 8($t0)
+		sw $t2, 128($t0)
+		sw $t2, 136($t0)
+		sw $t2, 256($t0)
+		sw $t2, 264($t0)
+		sw $t2, 384($t0)
+		sw $t2, 392($t0)
+		sw $t2, 512($t0)
+		sw $t2, 516($t0)
+		sw $t2, 520($t0)
+		jr $ra
 
+drawOne:	lw $t1, 0($sp) #load offset
+		lw $t0, displayAddress
+		lw $t2, 4($sp) #load color
+		add $t0, $t0, $t1 #locate left top block
+		sw $t2, 0($t0) # paint the number
+		sw $t2, 4($t0)
+		sw $t2, 132($t0)
+		sw $t2, 260($t0)
+		sw $t2, 388($t0)
+		sw $t2, 512($t0)
+		sw $t2, 516($t0)
+		sw $t2, 520($t0)
+		jr $ra
 
+drawTwo:	lw $t1, 0($sp) #load offset
+		lw $t0, displayAddress
+		lw $t2, 4($sp) #load color
+		add $t0, $t0, $t1 #locate left top block
+		sw $t2, 0($t0) # paint the number
+		sw $t2, 4($t0)
+		sw $t2, 8($t0)
+		sw $t2, 136($t0)
+		sw $t2, 256($t0)
+		sw $t2, 260($t0)
+		sw $t2, 264($t0)
+		sw $t2, 384($t0)
+		sw $t2, 512($t0)
+		sw $t2, 516($t0)
+		sw $t2, 520($t0)
+		jr $ra
 
-
-
+drawThree:	lw $t1, 0($sp) #load offset
+		lw $t0, displayAddress
+		lw $t2, 4($sp) #load color
+		add $t0, $t0, $t1 #locate left top block
+		sw $t2, 0($t0) # paint the number
+		sw $t2, 4($t0)
+		sw $t2, 8($t0)
+		sw $t2, 136($t0)
+		sw $t2, 256($t0)
+		sw $t2, 260($t0)
+		sw $t2, 264($t0)
+		sw $t2, 392($t0)
+		sw $t2, 512($t0)
+		sw $t2, 516($t0)
+		sw $t2, 520($t0)
+		jr $ra
+		
+drawFour:	lw $t1, 0($sp) #load offset
+		lw $t0, displayAddress
+		lw $t2, 4($sp) #load color
+		add $t0, $t0, $t1 #locate left top block
+		sw $t2, 0($t0) # paint the number
+		sw $t2, 8($t0)
+		sw $t2, 128($t0)
+		sw $t2, 136($t0)
+		sw $t2, 256($t0)
+		sw $t2, 260($t0)
+		sw $t2, 264($t0)
+		sw $t2, 392($t0)
+		sw $t2, 520($t0)
+		jr $ra		
+		
+drawFive:	lw $t1, 0($sp) #load offset
+		lw $t0, displayAddress
+		lw $t2, 4($sp) #load color
+		add $t0, $t0, $t1 #locate left top block
+		sw $t2, 0($t0) # paint the number
+		sw $t2, 4($t0)
+		sw $t2, 8($t0)
+		sw $t2, 128($t0)
+		sw $t2, 256($t0)
+		sw $t2, 260($t0)
+		sw $t2, 264($t0)
+		sw $t2, 392($t0)
+		sw $t2, 512($t0)
+		sw $t2, 516($t0)
+		sw $t2, 520($t0)
+		jr $ra
+		
+drawSix:	lw $t1, 0($sp) #load offset
+		lw $t0, displayAddress
+		lw $t2, 4($sp) #load color
+		add $t0, $t0, $t1 #locate left top block
+		sw $t2, 0($t0) # paint the number
+		sw $t2, 4($t0)
+		sw $t2, 8($t0)
+		sw $t2, 128($t0)
+		sw $t2, 256($t0)
+		sw $t2, 260($t0)
+		sw $t2, 264($t0)
+		sw $t2, 384($t0)
+		sw $t2, 392($t0)
+		sw $t2, 512($t0)
+		sw $t2, 516($t0)
+		sw $t2, 520($t0)
+		jr $ra	
+		
+drawSeven:	lw $t1, 0($sp) #load offset
+		lw $t0, displayAddress
+		lw $t2, 4($sp) #load color
+		add $t0, $t0, $t1 #locate left top block
+		sw $t2, 0($t0) # paint the number
+		sw $t2, 4($t0)
+		sw $t2, 8($t0)
+		sw $t2, 136($t0)
+		sw $t2, 264($t0)
+		sw $t2, 392($t0)
+		sw $t2, 520($t0)
+		jr $ra			
+		
+drawEight:	lw $t1, 0($sp) #load offset
+		lw $t0, displayAddress
+		lw $t2, 4($sp) #load color
+		add $t0, $t0, $t1 #locate left top block
+		sw $t2, 0($t0) # paint the number
+		sw $t2, 4($t0)
+		sw $t2, 8($t0)
+		sw $t2, 128($t0)
+		sw $t2, 136($t0)
+		sw $t2, 256($t0)
+		sw $t2, 260($t0)
+		sw $t2, 264($t0)
+		sw $t2, 384($t0)
+		sw $t2, 392($t0)
+		sw $t2, 512($t0)
+		sw $t2, 516($t0)
+		sw $t2, 520($t0)
+		jr $ra
+		
+drawNine:	lw $t1, 0($sp) #load offset
+		lw $t0, displayAddress
+		lw $t2, 4($sp) #load color
+		add $t0, $t0, $t1 #locate left top block
+		sw $t2, 0($t0) # paint the number
+		sw $t2, 4($t0)
+		sw $t2, 8($t0)
+		sw $t2, 128($t0)
+		sw $t2, 136($t0)
+		sw $t2, 256($t0)
+		sw $t2, 260($t0)
+		sw $t2, 264($t0)
+		sw $t2, 392($t0)
+		sw $t2, 520($t0)
+		jr $ra
