@@ -13,13 +13,13 @@
 # - Base Address for Display: 0x10008000 ($gp)
 #
 # Which milestone is reached in this submission?
-# - Milestone 4
+# - Milestone 5
 #
 # Which approved additional features have been implemented?
 # (See the assignment handout for the list of additional features)
-# 1. (fill in the feature, if any)
-# 2. (fill in the feature, if any)
-# 3. (fill in the feature, if any)
+# 1. Fancier graphics
+# 2. Dynamic on-screen notifications: print WOW when score reaches 5 and print Awesome wehen score reaches 10.
+# 3. Shields
 # ... (add more if necessary)
 #
 # Any additional information that the TA needs to know:
@@ -105,7 +105,8 @@ updateScore:	lw $t1, purple
 		lw $t8, score
 		addi $t8, $t8, 1
 		sw $t8, 0($t9)# score plus one
-		beq $t8, 6, drawwow
+		beq $t8, 5, drawwow
+		beq $t8, 10, drawawesome
 backtoscore:	j goUp
 
 drawwow:	addi $sp, $sp, -4
@@ -123,6 +124,27 @@ drawwow:	addi $sp, $sp, -4
 		lw $s2, purple
 		sw $s2, 0($sp)
 		jal drawWOW
+		addi $sp, $sp, 4
+		addi $sp, $sp, 4
+		lw $ra, 0($sp)
+		addi $sp, $sp, 4
+		j backtoscore
+		
+drawawesome:	addi $sp, $sp, -4
+		sw $ra, 0($sp) #store return address into stack 
+		addi $sp, $sp, -4
+		li $s1, 358 
+		sw $s1, 0($sp)
+		addi $sp, $sp, -4
+		lw $s2, green
+		sw $s2, 0($sp)
+		jal drawAwesome
+		li $v0, 32 # wait for 1 second
+		li $a0, 500
+		syscall
+		lw $s2, purple
+		sw $s2, 0($sp)
+		jal drawAwesome
 		addi $sp, $sp, 4
 		addi $sp, $sp, 4
 		lw $ra, 0($sp)
@@ -203,8 +225,19 @@ loop3:		lw $t4, doodler
 		sw $t1, 508($t0)
 		sw $t1, 512($t0)
 		sw $t1, 516($t0)
-		li $v0, 32 # wait for 1 second
-		li $a0, 200
+		#addi $sp, $sp, -4
+		#sw $ra, 0($sp) #store return address into stack 
+		#jal Scollision
+		#lw $s1, 0($sp)
+		#addi $sp, $sp, 4
+		#bne $s1, 1, nocoli
+		#sw $t1, 380($t0)
+		#sw $t1, 384($t0)
+		#sw $t1, 388($t0)
+		#lw $ra, 0($sp)
+		#addi $sp, $sp, 4
+nocoli:		li $v0, 32 # wait for 1 second
+		li $a0, 20
 		syscall
 		sw $t3, 0($t0) # repaint the screen by black
 		sw $t3, 124($t0) 
@@ -304,7 +337,7 @@ draw:		addi $t4, $t4, 128
 		sw $t1, 512($t0)
 		sw $t1, 516($t0)
 		li $v0, 32 # wait for 1 second
-		li $a0, 200
+		li $a0, 20
 		syscall
 		sw $t3, 0($t0) # repaint the screen by black
 		sw $t3, 124($t0) 
@@ -395,7 +428,9 @@ renew:		li $v0, 42 #radomize a number
 		syscall # radomized number stored in $a0
 		addi $s3, $a0, 0
 		j restore
-		
+
+
+
 drawG:		lw $t1, red
 		lw $t0, displayAddress
 		li $t3, 102 #offset of top left block
@@ -590,6 +625,105 @@ drawWOW:
 		sw $t1, 396($t0)
 		sw $t1, 516($t0)
 		sw $t1, 524($t0)
+		
+		jr $ra
+		
+drawAwesome:	lw $t1, 0($sp)
+		lw $t0, displayAddress
+		lw $t3, 4($sp) #offset of top left block
+		sll $t4, $t3, 2 # offset times 4
+		add $t0, $t0, $t4 #calculate top left block 
+		sw $t1, 0($t0) #draw A 
+		sw $t1, 124($t0)
+		sw $t1, 132($t0)
+		sw $t1, 252($t0)
+		sw $t1, 256($t0)
+		sw $t1, 260($t0)
+		sw $t1, 380($t0)
+		sw $t1, 388($t0)
+		sw $t1, 508($t0)
+		sw $t1, 516($t0)
+		
+		add $t0, $t0, 16 #calculate top left block 
+		sw $t1, 0($t0) #draw W
+		sw $t1, 16($t0)
+		sw $t1, 128($t0)
+		sw $t1, 136($t0)
+		sw $t1, 144($t0)
+		sw $t1, 256($t0)
+		sw $t1, 264($t0)
+		sw $t1, 272($t0)
+		sw $t1, 388($t0) 
+		sw $t1, 392($t0)
+		sw $t1, 396($t0)
+		sw $t1, 516($t0)
+		sw $t1, 524($t0)
+		
+		add $t0, $t0, 24 #calculate top left block 
+		sw $t1, 0($t0) #draw E with red
+		sw $t1, 4($t0)
+		sw $t1, 8($t0)
+		sw $t1, 128($t0)
+		sw $t1, 256($t0)
+		sw $t1, 260($t0)
+		sw $t1, 264($t0)
+		sw $t1, 384($t0)
+		sw $t1, 512($t0)
+		sw $t1, 516($t0)
+		sw $t1, 520($t0)
+		
+		add $t0, $t0, 744 #calculate top left block 
+		sw $t1, 0($t0) #draw s 
+		sw $t1, 4($t0)
+		sw $t1, 8($t0)
+		sw $t1, 128($t0)
+		sw $t1, 256($t0)
+		sw $t1, 260($t0)
+		sw $t1, 264($t0)
+		sw $t1, 392($t0)
+		sw $t1, 512($t0)
+		sw $t1, 516($t0)
+		sw $t1, 520($t0)
+		
+		add $t0, $t0, 20 #calculate top left block 
+		sw $t1, 4($t0) #draw O with red
+		sw $t1, 8($t0)
+		sw $t1, 128($t0)
+		sw $t1, 140($t0)
+		sw $t1, 256($t0)
+		sw $t1, 268($t0)
+		sw $t1, 384($t0)
+		sw $t1, 396($t0)
+		sw $t1, 516($t0)
+		sw $t1, 520($t0)
+		
+		add $t0, $t0, 24 #calculate top left block 
+		sw $t1, 0($t0) #draw M with red
+		sw $t1, 16($t0)
+		sw $t1, 128($t0)
+		sw $t1, 132($t0)
+		sw $t1, 140($t0)
+		sw $t1, 144($t0)
+		sw $t1, 256($t0)
+		sw $t1, 264($t0)
+		sw $t1, 272($t0)
+		sw $t1, 384($t0)
+		sw $t1, 400($t0)
+		sw $t1, 512($t0)
+		sw $t1, 528($t0)
+		
+		add $t0, $t0, 28 #calculate top left block 
+		sw $t1, 0($t0) #draw E with red
+		sw $t1, 4($t0)
+		sw $t1, 8($t0)
+		sw $t1, 128($t0)
+		sw $t1, 256($t0)
+		sw $t1, 260($t0)
+		sw $t1, 264($t0)
+		sw $t1, 384($t0)
+		sw $t1, 512($t0)
+		sw $t1, 516($t0)
+		sw $t1, 520($t0)
 		
 		jr $ra
 
@@ -873,8 +1007,27 @@ drawShield:	lw $t1, shield #load offset number
 		sw $t2, 260($t0)
 		jr $ra
 		
-		
-		
+Scollision:	lw $s3, shield #load position of shield 
+		lw $s2, doodler #load doodler position		
+		addi $s2, $s2, 161 #doodler right bottom position
+		bge $s2, $s3, next3 #check doodler right bottom greater than or equal to shield leftmost block
+		addi $sp, $sp, -4
+		sw $s0, 0($sp) #store 1 for true 0 for false into stack 
+		jr $ra #return 0
+		lw $s2, doodler #doodler left top location
+		addi $s3, $s3, 65 #platform rightmost block
+next3:		blt $s2, $s3, End3 # if collide, jump to end
+		li $s0, 0
+		addi $sp, $sp, -4
+		sw $s0, 0($sp) #store 1 for true 0 for false into stack 
+		jr $ra		
+End3:		
+		li $s0, 1
+		addi $sp, $sp, -4
+		sw $s0, 0($sp) #store 1 for true 0 for false into stack 
+		jr $ra		
+
+	
 		
 		
 		
