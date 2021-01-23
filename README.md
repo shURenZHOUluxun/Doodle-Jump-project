@@ -1,5 +1,5 @@
-# csc258-project
-csc258-project
+# Doodle Jump Project
+U of T csc258 course project 
 ## overview
 In this project, I implemented the popular mobile game Doodle Jump using MIPS assembly. If you don't have access to physical computers with MIPS processors, you can test the implementation in a simulated environment within MARS, i.e., a simulated bitmap display and a simulated
 keyboard input.
